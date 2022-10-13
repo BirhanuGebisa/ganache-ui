@@ -1,4 +1,5 @@
 import React, { Component } from "react";
+import { hashHistory } from "react-router";
 
 import * as pkg from "../../../../package.json";
 
@@ -16,22 +17,16 @@ class TitleScreen extends Component {
       firstRun: undefined,
     };
 
-    this.intervalId = setInterval(() => {
+    const intervalId = setInterval(() => {
       if (this.state.firstRun === true) {
-        this.props.history.push("/first_run");
-        clearInterval(this.intervalId);
+        hashHistory.push("/first_run");
+        clearInterval(intervalId);
       } else if (this.state.firstRun === false) {
-        this.props.history.push("/home");
-        clearInterval(this.intervalId);
+        hashHistory.push("/home");
+        clearInterval(intervalId);
       }
     }, 1000);
   }
-
-  componentWillUnmount() {
-    clearInterval(this.intervalId);
-  }
-
-
 
   static getDerivedStateFromProps(nextProps) {
     if (
@@ -55,6 +50,7 @@ class TitleScreen extends Component {
         <OnlyIf test={this.props.core.systemError != null}>
           <BugModal
             systemError={this.props.core.systemError}
+            logs={this.props.logs}
           />
         </OnlyIf>
       </div>
@@ -65,5 +61,6 @@ class TitleScreen extends Component {
 export default connect(
   TitleScreen,
   "config",
-  "core"
+  "core",
+  "logs",
 );

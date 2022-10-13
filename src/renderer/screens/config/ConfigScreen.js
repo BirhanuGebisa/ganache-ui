@@ -1,4 +1,5 @@
 import React, { PureComponent } from "react";
+import { hashHistory } from "react-router";
 import cloneDeep from "lodash.clonedeep";
 import isEqual from "lodash.isequal";
 import connect from "../helpers/connect";
@@ -10,77 +11,49 @@ import {
   closeWorkspace,
 } from "../../../common/redux/workspaces/actions";
 
-// common screens
+import WorkspaceScreen from "./ConfigScreens/WorkspaceScreen";
+import ServerScreen from "./ConfigScreens/ServerScreen";
+import AccountsScreen from "./ConfigScreens/AccountsScreen";
+import ChainScreen from "./ConfigScreens/ChainScreen";
+import AdvancedScreen from "./ConfigScreens/AdvancedScreen";
 import AboutScreen from "./ConfigScreens/AboutScreen";
-
-// ethereum screens
-import EthereumWorkspaceScreen from "../../../integrations/ethereum/renderer/screens/config/ConfigScreens/WorkspaceScreen";
-import ServerScreen from "../../../integrations/ethereum/renderer/screens/config/ConfigScreens/ServerScreen";
-import AccountsScreen from "../../../integrations/ethereum/renderer/screens/config/ConfigScreens/AccountsScreen";
-import ChainScreen from "../../../integrations/ethereum/renderer/screens/config/ConfigScreens/ChainScreen";
-import AdvancedScreen from "../../../integrations/ethereum/renderer/screens/config/ConfigScreens/AdvancedScreen";
-
-// corda screens
-import CordaWorkspaceScreen from "../../../integrations/corda/renderer/screens/config/ConfigScreens/WorkspaceScreen";
-import NodesScreen from "../../../integrations/corda/renderer/screens/config/ConfigScreens/NodesScreen";
-import CordaAdvancedScreen from "../../../integrations/corda/renderer/screens/config/ConfigScreens/AdvancedScreen";
 
 import RestartIcon from "../../icons/restart.svg";
 import EjectIcon from "../../icons/eject.svg";
 import SaveIcon from "../../icons/save-icon.svg";
 import OnlyIf from "../../components/only-if/OnlyIf";
 
-const ETHEREUM_TABS = [
-  { name: "Workspace", subRoute: "workspace", component: EthereumWorkspaceScreen },
-  { name: "Server", subRoute: "server", component: ServerScreen },
-  { name: "Accounts & Keys", subRoute: "accounts-keys", component: AccountsScreen },
-  { name: "Chain", subRoute: "chain", component: ChainScreen },
-  { name: "Advanced", subRoute: "advanced", component: AdvancedScreen }
-];
-
-const CORDA_TABS = [
-  { name: "Workspace", subRoute: "corda/workspace", component: CordaWorkspaceScreen },
-  { name: "Nodes", subRoute: "corda/nodes", component: NodesScreen, data:{type: "nodes"} },
-  { name: "Notaries", subRoute: "corda/notaries", component: NodesScreen, data:{type: "notaries"} },
-  { name: "Advanced", subRoute: "corda/advanced", component: CordaAdvancedScreen }
-];
-
 const TABS = [
-  { name: "About", subRoute: "about", component: AboutScreen }
+  { name: "Workspace", subRoute: "workspace", component: WorkspaceScreen },
+  { name: "Server", subRoute: "server", component: ServerScreen },
+  {
+    name: "Accounts & Keys",
+    subRoute: "accounts-keys",
+    component: AccountsScreen,
+  },
+  { name: "Chain", subRoute: "chain", component: ChainScreen },
+  { name: "Advanced", subRoute: "advanced", component: AdvancedScreen },
+  { name: "About", subRoute: "about", component: AboutScreen },
 ];
 
 class ConfigScreen extends PureComponent {
   constructor(props) {
     super(props);
 
-    let tabs;
-    switch(props.config.settings.workspace.flavor){
-      case "ethereum":
-        tabs = ETHEREUM_TABS;
-      break;
-      case "corda":
-        tabs = CORDA_TABS;
-      break;
-    }
-    tabs = tabs.concat(TABS);
-
     this.state = {
       config: cloneDeep(props.config),
       validationErrors: {},
       restartOnCancel: Object.keys(props.config.validationErrors).length > 0, // see handleCancelPressed
       activeIndex: 0,
-      TABS: tabs
     };
 
     this.initActiveIndex();
   }
 
   initActiveIndex = () => {
-    if ("params" in this.props && "activeTab" in this.props.match.params) {
-      const TABS = this.state.TABS
+    if ("params" in this.props && "activeTab" in this.props.params) {
       for (let i = 0; i < TABS.length; i++) {
-        if (TABS[i].subRoute === this.props.match.params.activeTab) {
-          // eslint-disable-next-line react/no-direct-mutation-state
+        if (TABS[i].subRoute === this.props.params.activeTab) {
           this.state.activeIndex = i;
           break;
         }
@@ -90,7 +63,6 @@ class ConfigScreen extends PureComponent {
 
   restartServer = () => {
     this.props.dispatch(Config.clearAllSettingErrors());
-    // eslint-disable-next-line react/no-direct-mutation-state
     this.state.config.validationErrors = {};
 
     if (this.isDirty()) {
@@ -120,19 +92,19 @@ class ConfigScreen extends PureComponent {
       // restart application without saving settings if the user hit cancel
       this.props.dispatch(Core.requestServerRestart());
     } else {
-      if (this.props.config.startupMode === Config.STARTUP_MODE.NEW_WORKSPACE) {
+      if (this.props.config.startupMode !== Config.STARTUP_MODE.NORMAL) {
         this.props.dispatch(closeWorkspace());
         this.props.dispatch(
-          deleteWorkspace(this.props.workspaces.current.name, this.props.workspaces.current.flavor),
+          deleteWorkspace(this.props.workspaces.current.name),
         );
       } else {
-        this.props.history.goBack();
+        hashHistory.goBack();
       }
     }
   };
 
   _renderTabHeader = () => {
-    return this.state.TABS.map((tab, index) => {
+    return TABS.map((tab, index) => {
       let className = `TabItem ${
         this.state.activeIndex == index ? "ActiveTab" : ""
       }`;
@@ -155,31 +127,12 @@ class ConfigScreen extends PureComponent {
     });
   };
 
-  updateCordaNodes = (path, remove = false) => {
-    const workspace = this.state.config.settings.workspace;
-    const nodes = [...workspace.nodes, ...workspace.notaries];
-    nodes.forEach(node => {
-      const cordapps = node.cordapps;
-      if (remove) {
-        const index = cordapps.indexOf(path);
-        if (index !== -1) {
-          cordapps.splice(index, 1);
-        }
-      } else {
-        cordapps.push(path);
-      }
-    });
-  }
-
   addWorkspaceProject = path => {
     const alreadyExists = this.state.config.settings.workspace.projects.includes(
       path,
     );
     if (!alreadyExists) {
       this.state.config.settings.workspace.projects.push(path);
-    }
-    if (this.isCorda()) {
-      this.updateCordaNodes(path);
     }
     this.forceUpdate();
   };
@@ -190,11 +143,7 @@ class ConfigScreen extends PureComponent {
     const newProjects = this.state.config.settings.workspace.projects.filter(
       x => x !== path,
     );
-    // eslint-disable-next-line react/no-direct-mutation-state
     this.state.config.settings.workspace.projects = newProjects;
-    if (this.isCorda()) {
-      this.updateCordaNodes(path, true);
-    }
     this.forceUpdate();
   };
 
@@ -342,9 +291,8 @@ class ConfigScreen extends PureComponent {
 
   render() {
     let activeTab = React.createElement(
-      this.state.TABS[this.state.activeIndex].component,
+      TABS[this.state.activeIndex].component,
       {
-        data: this.state.TABS[this.state.activeIndex].data || null,
         config: this.state.config,
         network: this.props.network,
         handleInputChange: this.handleInputChange,

@@ -12,26 +12,15 @@ import ErrorModal from "../../components/modal/ErrorModal";
 import UpdateModal from "../auto-update/UpdateModal";
 
 import OnlyIf from "../../components/only-if/OnlyIf";
-import { setToast } from "../../../common/redux/network/actions";
 
 ElectronCookies.enable({
-  origin: "https://trufflesuite.com/ganache",
+  origin: "https://truflesuite.com/ganache",
 });
 
 class AppShell extends Component {
   constructor(props) {
     super(props);
-    this.scrollDedupeTimeout = null; 
-  }
-  componentDidUpdate(prevProps) {
-    if (prevProps.network.toast.date !== this.props.network.toast.date) {
-      clearTimeout(this.toastTimer);
-      if (!this.props.network.toast.infinite) {
-        this.toastTimer = setTimeout(() => {
-          this.props.dispatch(setToast(null));
-        }, 4000);
-      }
-    }
+    this.scrollDedupeTimeout = null;
   }
 
   _handleScroll = values => {
@@ -99,6 +88,7 @@ class AppShell extends Component {
         >
           <BugModal
             systemError={this.props.core.systemError}
+            logs={this.props.logs}
           />
         </OnlyIf>
         <OnlyIf test={this.props.core.modalError != null}>
@@ -109,13 +99,6 @@ class AppShell extends Component {
         >
           <UpdateModal />
         </OnlyIf>
-        <OnlyIf
-          test={this.props.network.toast.message !== null}>
-            <div className="toast" style={{display: "flex", alignItems: "center"}}>
-              <div>{this.props.network.toast.message} {toastButton}</div>
-              <button style={{color:"#fff", fontSize:"1.5em", background:"transparent", padding:0, margin:"0 0 0 1rem", lineHeight: "20px", width:"20px", height:"20px"}} onClick={() => this.props.dispatch(setToast(null))}>×</button>
-            </div>
-          </OnlyIf>
       </div>
     );
   }
@@ -125,6 +108,7 @@ export default connect(
   AppShell,
   "appshell",
   "core",
+  "config",
+  "logs",
   "autoUpdate",
-  "network"
 );

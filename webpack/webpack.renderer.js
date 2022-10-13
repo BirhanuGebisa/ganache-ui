@@ -1,53 +1,27 @@
 const path = require("path");
 
-const babelLoader = {
-  loader: "babel-loader",
-  options: {
-    cacheDirectory: true,
-    cacheCompression: false
-  }
-};
-
 module.exports = function(config) {
-  const rootDir = path.resolve(__dirname, "../");
-  const srcDir = path.resolve(rootDir, "src")
-  const rules = config.module.rules;
-  // we don't want to url-encode svgs, so remove the svgs from the image rule
-  const imageRule = rules.find(rule => {
+  // we don't want to url-encode svgs, so remove thesvgs from the image rule
+  const imageRule = config.module.rules.find(rule => {
     return rule.test.toString() === "/\\.(png|jpe?g|gif|svg)(\\?.*)?$/";
   });
 
   // override its test
-  imageRule.test = /\.(png|jpe?g|gif)(\?.*)?$/i;
-  imageRule.include = [
-    srcDir,
-    path.resolve(rootDir, "static")
-  ];
-  imageRule.use = [
-    "cache-loader",
-    imageRule.use
-  ];
+  imageRule.test = /\.(png|jpe?g|gif)(\?.*)?$/;
 
   // add our custom rules
-  rules.push.apply(rules, [
+  config.module.rules.push.apply(config.module.rules, [
     {
-      test: /\.(js|jsx)$/i,
-      include: srcDir,
-      use: [
-        {
-          loader: "babel-loader",
-          options: {
-            ...babelLoader.options,
-            presets: ["@babel/react"]
-          }
-        }
-      ],
+      test: /\.(js|jsx)$/,
+      loader: "babel-loader",
+      options: {
+        presets: ["@babel/react"]
+      },
     },
     {
-      test: /\.svg$/i,
-      include: path.resolve(srcDir, "renderer", "icons"),
+      test: /\.svg$/,
       use: [
-        babelLoader,
+        "babel-loader",
         {
           loader: "react-svg-loader",
           options: {
@@ -68,10 +42,7 @@ module.exports = function(config) {
   if (!config.resolve) {
     config.resolve = {};
   }
-  config.resolve.alias["@static"] = path.resolve(__dirname, '../static');
-
-  config.resolve.symlinks = false;
-  config.output.pathinfo = false;
+  config.resolve.alias["@static"] = path.resolve ( __dirname, '../static' );
 
   return config;
 };

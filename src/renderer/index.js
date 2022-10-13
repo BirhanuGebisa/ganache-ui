@@ -1,20 +1,16 @@
-import { showTitleScreen } from "../common/redux/core/actions";
-
 import React from "react";
 import ReactDOM from "react-dom";
 import { AppContainer } from "react-hot-loader";
 import { Provider } from "react-redux";
-import createRootReducer from "../common/redux/reducer";
-import { createHashHistory } from "history";
+import { Router, hashHistory } from "react-router";
+import RootReducer from "../common/redux/reducer";
 import createStore from "./init/store/createStore";
 import { initRenderer } from "./init/index";
 import { ipcRenderer } from "electron";
-import App from "./App";
+import routes from "./routes";
 import "./css";
 
-const hashHistory = createHashHistory();
-const rootReducer = createRootReducer(hashHistory);
-const store = createStore(rootReducer, hashHistory);
+const store = createStore(RootReducer);
 initRenderer(store);
 
 ipcRenderer.on("navigate", (_, path) => {
@@ -25,24 +21,17 @@ const render = () => {
   ReactDOM.render(
     <AppContainer>
       <Provider store={store}>
-        <App history={hashHistory} />
+        <Router history={hashHistory} routes={routes} />
       </Provider>
     </AppContainer>,
     document.getElementById("app"),
   );
 };
 
+store.subscribe(render);
+
 render();
 
-store.dispatch(showTitleScreen());
-
-
 if (module.hot) {
-  module.hot.accept('./App', () => {
-    render()
-  });
-
-  module.hot.accept('../common/redux/reducer', () => {
-    store.replaceReducer(rootReducer(history))
-  })
+  module.hot.accept(render);
 }

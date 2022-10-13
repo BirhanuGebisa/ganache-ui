@@ -1,37 +1,48 @@
 import Settings from "./Settings";
 import merge from "lodash.merge";
 
-const oldDefaultMnemonic = "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
+const oldDefaultMnemonic =
+  "candy maple cake sugar pudding cream honey rich smooth crumble sweet treat";
 
-const ethereumInitialSettings = require("./flavors/ethereum");
-const cordaInitialSettings = require("./flavors/corda");
+const initialSettings = {
+  name: "Quickstart",
+  isDefault: true,
+  verboseLogging: false,
+  randomizeMnemonicOnStart: false,
+  logsDirectory: null,
+  server: {
+    hostname: "127.0.0.1",
+    port: 7545,
+    network_id: 5777,
+    default_balance_ether: 100,
+    total_accounts: 10,
+    unlocked_accounts: [],
+    locked: false,
+    vmErrorsOnRPCResponse: true,
+    logger: null,
+    verbose: false,
+    gasLimit: 6721975,
+    gasPrice: 20000000000,
+    hardfork: "petersburg",
+    fork: null,
+    fork_block_number: null
+  },
+  projects: [],
+};
 
 class WorkspaceSettings extends Settings {
-  constructor(directory, chaindataDirectory, flavor = "ethereum") {
-    let initialSettings;
-    switch(flavor){
-      case "ethereum":
-          initialSettings = ethereumInitialSettings
-      break;
-      case "corda":
-          initialSettings = cordaInitialSettings
-      break;
-      default:
-        throw new Error("Invalid flavor: " + flavor);
-    }
-    super(directory, merge({}, initialSettings, {flavor}));
+  constructor(directory, chaindataDirectory) {
+    super(directory, initialSettings);
 
     this.chaindataDirectory = chaindataDirectory;
 
-    if (flavor === "ethereum") {
-      this.defaultSettings = {
-        server: {
-          gasLimit: initialSettings.server.gasLimit,
-          gasPrice: initialSettings.server.gasPrice,
-          hardfork: initialSettings.server.hardfork,
-        }
-      };
-    }
+    this.defaultSettings = {
+      server: {
+        gasLimit: initialSettings.server.gasLimit,
+        gasPrice: initialSettings.server.gasPrice,
+        hardfork: initialSettings.server.hardfork,
+      },
+    };
   }
 
   bootstrapModification(currentSettings) {
@@ -76,7 +87,7 @@ const migrateMnemonicSettings = function(currentSettings) {
   // If we're migrating a settings file from before we used a persistent,
   // randomly generated mnemonic by default, randomizeMnemonic on start will
   // be undefined.
-  if (currentSettings.randomizeMnemonicOnStart === undefined && currentSettings.server) {
+  if (currentSettings.randomizeMnemonicOnStart === undefined) {
     // Before we added the randomizeMnemonicOnStart flag, the absence of a
     // mnemonic meant that we wanted a random one one each run. We want to
     // preserve this preference.

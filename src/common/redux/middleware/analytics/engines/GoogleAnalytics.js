@@ -6,7 +6,7 @@ import {
   RPC_REQUEST_STARTED,
   RPC_REQUEST_SUCCEEDED,
   RPC_REQUEST_FAILED,
-} from "../../../../../integrations/ethereum/common/redux/web3/helpers/ReduxWeb3Provider";
+} from "../../../web3/helpers/ReduxWeb3Provider";
 
 export function processPage(pathname, state) {
   if (state.config.settings.global) {

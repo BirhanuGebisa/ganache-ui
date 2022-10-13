@@ -47,29 +47,17 @@ class WorkspaceManager {
           const sanitizedName = Workspace.getSanitizedName(name);
           if (sanitizedName !== file) {
             // apparently the Settings file has a name that is not equal to the directory,
-            //   we need to move the directory
-            try {
-              fse.moveSync(
-                path.join(workspacesDirectory, file),
-                path.join(workspacesDirectory, sanitizedName),
-              );
-            } catch(e) {
-              // It's okay that we ignore move errors, promise!
-              // This happens because a user tried to name two or more
-              // workspaces with the same name. We only name workspace folders
-              // by name because it is a little easier for us to debug.
-              // We should *probably* just append the uuid of the workspace
-              // to the dir name, to ensure uniqueness.
-              console.log(e);
-            }
+            //   we need to move the directory=
+            fse.moveSync(
+              path.join(workspacesDirectory, file),
+              path.join(workspacesDirectory, sanitizedName),
+            );
           }
-          const flavor = settings.get("flavor");
-          return [new Workspace(name, this.directory, flavor)];
+          return new Workspace(name, this.directory);
         });
     }
 
-    this.workspaces.push(new Workspace(null, this.directory, "ethereum"));
-    this.workspaces.push(new Workspace(null, this.directory, "corda"));
+    this.workspaces.push(new Workspace(null, this.directory));
   }
 
   bootstrap() {
@@ -82,19 +70,11 @@ class WorkspaceManager {
   getNonDefaultNames() {
     return this.workspaces
       .filter(workspace => workspace.name !== null)
-      .map(workspace => ({name: workspace.name, flavor: workspace.flavor}));
+      .map(workspace => workspace.name);
   }
 
-  get(name, flavor = "ethereum") {
-    return this.workspaces.find(workspace => name === workspace.name && isFlavor(workspace.flavor, flavor));
-  }
-}
-
-function isFlavor(flavorA, flavorB){
-  if (flavorA === undefined && flavorB === "ethereum") {
-    return true;
-  } else {
-    return flavorA === flavorB;
+  get(name) {
+    return this.workspaces.find(workspace => name === workspace.name);
   }
 }
 

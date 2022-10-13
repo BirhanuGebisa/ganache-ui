@@ -1,17 +1,13 @@
 import {
   SET_WORKSPACES,
-  SET_CURRENT_WORKSPACE
-} from "./actions";
-
-import {
-  CLEAR_SHOWN_CONTRACT,
-  CONTRACT_EVENT,
+  SET_CURRENT_WORKSPACE,
   CONTRACT_TRANSACTION,
+  CONTRACT_EVENT,
   GET_CONTRACT_DETAILS,
+  CLEAR_SHOWN_CONTRACT,
   PROJECT_UPDATED,
-  SET_LOADING_CONTRACT_DETAILS
-} from "../../../integrations/ethereum/common/redux/workspaces/actions";
-
+  SET_LOADING_CONTRACT_DETAILS,
+} from "./actions";
 import cloneDeep from "lodash.clonedeep";
 
 const initialState = {
@@ -29,11 +25,8 @@ const initialShownContract = {
 };
 
 function linkContractCacheToProject(contractCache, project) {
-  if(!project.contracts) return;
-
   for (let j = 0; j < project.contracts.length; j++) {
     const contract = project.contracts[j];
-    if (!contractCache) return;
 
     if (typeof contractCache[contract.address] === "undefined") {
       contractCache[contract.address] = {
@@ -50,7 +43,7 @@ export default function(state = initialState, action) {
 
   switch (action.type) {
     case SET_WORKSPACES:
-      nextState.info = cloneDeep(action.workspaces);
+      nextState.names = cloneDeep(action.workspaces);
       break;
     case SET_CURRENT_WORKSPACE:
       nextState.current = cloneDeep(action.workspace);
@@ -146,9 +139,9 @@ export default function(state = initialState, action) {
       }
       break;
     }
-    case SET_LOADING_CONTRACT_DETAILS: 
+    case SET_LOADING_CONTRACT_DETAILS: {
       nextState.current.shownContract.loading = action.loading;
-    break;
+    }
     default:
       break;
   }

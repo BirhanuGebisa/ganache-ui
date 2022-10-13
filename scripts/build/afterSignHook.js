@@ -7,7 +7,7 @@ const pkg = require("../../package.json");
 
 module.exports = async function (params) {
     // Only notarize the app on Mac OS only.
-    if (process.platform !== 'darwin' || process.env.NOTARIZE !== 'true') {
+    if (process.platform !== 'darwin') {
         return;
     }
     console.log('afterSign hook triggered', params);

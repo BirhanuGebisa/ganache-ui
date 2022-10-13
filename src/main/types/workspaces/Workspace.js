@@ -2,12 +2,11 @@ import path from "path";
 import fse from "fs-extra";
 
 import WorkspaceSettings from "../settings/WorkspaceSettings";
-import ContractCache from "../../../integrations/ethereum/main/types/contracts/ContractCache";
+import ContractCache from "../contracts/ContractCache";
 
 class Workspace {
-  constructor(name, configDirectory, flavor = "ethereum") {
+  constructor(name, configDirectory) {
     this.name = name; // null for quickstart/default workspace
-    this.flavor = flavor;
     this.projects = [];
     this.init(configDirectory);
 
@@ -16,17 +15,9 @@ class Workspace {
     this.settings = new WorkspaceSettings(
       this.workspaceDirectory,
       this.chaindataDirectory,
-      flavor
     );
 
-    // migrate to new contract cache location (in `chaindataDirectory):
-    const oldLocation = path.join(this.workspaceDirectory, ContractCache.KEY);
-    if (fse.existsSync(oldLocation)){
-      const newLocation = path.join(this.chaindataDirectory, ContractCache.KEY);
-      fse.moveSync(oldLocation, newLocation, {overwrite: true});
-    }
-
-    this.contractCache = new ContractCache(this.chaindataDirectory);
+    this.contractCache = new ContractCache(this.workspaceDirectory);
   }
 
   init(configDirectory) {
@@ -34,7 +25,6 @@ class Workspace {
     this.workspaceDirectory = Workspace.generateDirectoryPath(
       this.sanitizedName,
       configDirectory,
-      this.flavor
     );
     this.basename = path.basename(this.workspaceDirectory);
     this.chaindataDirectory = this.generateChaindataDirectory();
@@ -43,23 +33,23 @@ class Workspace {
   static getSanitizedName(name) {
     return name === null
       ? null
-      : (name.replace(/\s/g, "-").replace(/[^a-zA-Z0-9\-_.]/g, "_") || "_");
+      : name.replace(/\s/g, "-").replace(/[^a-zA-Z0-9\-\_\.]/g, "");
   }
 
-  static generateDirectoryPath(sanitizedName, configDirectory, flavor = "ethereum") {
+  static generateDirectoryPath(sanitizedName, configDirectory) {
     if (sanitizedName === null) {
-      if (flavor === "ethereum") {
-        return path.join(configDirectory, "default");
-      } else {
-        return path.join(configDirectory, `default_${flavor}`);
-      }
+      return path.join(configDirectory, "default");
     } else {
       return path.join(configDirectory, "workspaces", sanitizedName);
     }
   }
 
   generateChaindataDirectory() {
-    return path.join(this.workspaceDirectory, "chaindata");
+    if (this.name === null) {
+      return null;
+    } else {
+      return path.join(this.workspaceDirectory, "chaindata");
+    }
   }
 
   // creates the directory if needed (recursively)
@@ -104,11 +94,19 @@ class Workspace {
     this.settings.set("server.db_path", this.chaindataDirectory);
     this.settings.set("name", name);
     this.settings.set("isDefault", false);
-    if (this.flavor === "corda") {
-      this.settings.set("runBootstrap", true);
-    }
     this.settings.set("randomizeMnemonicOnStart", false);
     this.settings.set("server.mnemonic", mnemonic);
+
+    this.contractCache.setDirectory(this.workspaceDirectory);
+    this.contractCache.setAll(this.contractCache.getAll());
+
+    if (chaindataDirectory && chaindataDirectory !== this.chaindataDirectory) {
+      fse.copySync(chaindataDirectory, this.chaindataDirectory);
+    }
+  }
+
+  addProject(project) {
+    this.projects.push(project);
   }
 
   delete() {
@@ -136,11 +134,6 @@ class Workspace {
       // were issues, etc.). Don't really have time right now for
       // a solution here
     }
-    this.bootstrap();
-    // make sure the directory is correct
-    this.contractCache.setDirectory(this.chaindataDirectory);
-    // and then make sure we cleat the contract cache storage
-    this.contractCache.setAll({});
   }
 }
 

@@ -132,4 +132,4 @@ function _getLastNLogLines(maxLines, logs) {
     .join("\n");
 }
 
-export default connect(BugModal, "logs");
+export default connect(BugModal);

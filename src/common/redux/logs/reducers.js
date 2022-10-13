@@ -1,9 +1,7 @@
 import * as Logs from "./actions";
 
 const initialState = {
-  "default": {
-    lines: []
-  }
+  lines: [],
 };
 
 export default function(state = initialState, action) {
@@ -14,24 +12,13 @@ export default function(state = initialState, action) {
         return { time: time, line: line };
       });
 
-      var context = action.context || "default";
-      var group = state[context];
-      var oldLines = group ? [...group.lines] : [];
-      if (oldLines.length > 0 && newLines.length > 0) {
-        const firstLine = newLines.shift();
-        oldLines[oldLines.length - 1].line += firstLine.line;
-      }
       return Object.assign({}, state, {
-        [context]: {
-          lines: oldLines.concat(newLines)
-        }
+        lines: state.lines.concat(newLines),
       });
 
     case Logs.CLEAR_LOG_LINES:
       return Object.assign({}, state, {
-        [action.context]: {
-          lines: []
-        }
+        lines: [],
       });
 
     default:
