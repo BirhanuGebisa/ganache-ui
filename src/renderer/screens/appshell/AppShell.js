@@ -24,7 +24,7 @@ class AppShell extends Component {
     this.scrollDedupeTimeout = null; 
   }
   componentDidUpdate(prevProps) {
-    if (prevProps.network.toast.date !== this.props.network.toast.date && this.props.network.toast.message !== null) {
+    if (prevProps.network.toast.date !== this.props.network.toast.date) {
       clearTimeout(this.toastTimer);
       if (!this.props.network.toast.infinite) {
         this.toastTimer = setTimeout(() => {

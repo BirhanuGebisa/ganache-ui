@@ -1,10 +1,8 @@
 import React, { Component } from "react";
 import { remote } from "electron";
+import path from "path";
 import ModalDetails from "../../../../../../renderer/components/modal/ModalDetails";
 import SyntaxHighlighter from "react-syntax-highlighter";
-import { readFileSync, existsSync } from "fs-extra";
-import { join } from "path";
-import { setToast } from "../../../../../../common/redux/network/actions";
 
 class WorkspaceScreen extends Component {
   state = { selectedIdx: null };
@@ -19,27 +17,21 @@ class WorkspaceScreen extends Component {
     });
   };
 
-  handleAddDirectoryClick = async () => {
+  handleAddProjectClick = async () => {
     const pathArray = await remote.dialog.showOpenDialog({
-      properties: ["openDirectory", "multiSelections"]
+      properties: ["openFile"],
+      filters: [{ name: "CorDapp Jar", extensions: ["jar"] }],
     });
 
-    if (pathArray?.filePaths?.length > 0) {
-      const notFound = pathArray.filePaths.filter((path) => {
-        const buildGradle = join(path, "build.gradle");
-        return !(existsSync(buildGradle) && readFileSync(buildGradle).toString().includes("corda"));
-        // SEND TOAST
-      });
-      const len = notFound.length;
-      if (len) {
-        const y = len > 1 ? "ies" : "y";
-        this.props.dispatch(setToast(`Unable to find a valid build.gradle in: ${notFound.join(",\n")}. Watching director${y} for cordApp jars.`));
-      }
-      this.props.addWorkspaceProject(pathArray.filePaths);
+    if (
+      pathArray &&
+      pathArray.filePaths.length > 0 &&
+      path.basename(pathArray.filePaths[0]).match(/\.jar$/)
+    ) {
+      this.props.addWorkspaceProject(pathArray.filePaths[0]);
       this.setState({ selectedIdx: null });
     }
   };
-
 
   removeProject = projectPath => {
     this.props.removeWorkspaceProject(projectPath);
@@ -61,8 +53,8 @@ class WorkspaceScreen extends Component {
           value: "Cancel",
         },
       ],
-      "Remove Project?",
-      "Removing an installed project may have unintended side effects.",
+      "Remove CorDapp?",
+      "This CorDapp has transactions; are you sure you want to remove it? All information will no longer be accessible.",
     );
 
     this.props.dispatch(ModalDetails.actions.setModalError(modalDetails));
@@ -73,7 +65,30 @@ class WorkspaceScreen extends Component {
       this.state.selectedIdx
     ];
 
-    if (this.projectIsSaved(this.state.selectedIdx)){
+    let projectHasDeployedContracts = false;
+
+    let project = this.props.workspaces.current.projects.filter(project => {
+      return path.dirname(projectPath) === project.configFile;
+    });
+
+    if (project.length > 0) {
+      project = project[0];
+
+      if (typeof project.error === "undefined") {
+        projectHasDeployedContracts = project.contracts.reduce(
+          (accumulator, contract) => {
+            return (
+              accumulator ||
+              (typeof contract.address === "string" &&
+                contract.address.length > 0)
+            );
+          },
+          false,
+        );
+      }
+    }
+
+    if (projectHasDeployedContracts) {
       this.verifyRemoveProject(projectPath);
     } else {
       this.removeProject(projectPath);
@@ -117,28 +132,25 @@ class WorkspaceScreen extends Component {
           </div>
         </section>
         <section>
-          <h4>Projects</h4>
+          <h4>CorDapps</h4>
           <div className="Row">
             <div className="RowItem">
               {validationErrors && (
                 <div>
                   <div className="ValidationError">
-                    {validationErrors.message || validationErrors.value || validationErrors}
-                    { !validationErrors.stack ? "" : <>
-                      <button onClick={this.toggleErrorDetails}>
-                        {showErrorDetails
-                          ? "hide stack trace"
-                          : "show stack trace"}
-                      </button>
-                      { showErrorDetails && (
-                        <div className="ValidationDetails">
-                          <SyntaxHighlighter language="bash">
-                            {Array.isArray(validationErrors.stack) ? validationErrors.stack.map(line => line.toString()) : (validationErrors.stack || "")}
-                          </SyntaxHighlighter>
-                        </div>
-                      )}
-                      </>
-                    } 
+                    {validationErrors.message}
+                    <button onClick={this.toggleErrorDetails}>
+                      {showErrorDetails
+                        ? "hide stack trace"
+                        : "show stack trace"}
+                    </button>
+                    {showErrorDetails && (
+                      <div className="ValidationDetails">
+                        <SyntaxHighlighter language="bash">
+                          {validationErrors.stack.map(line => line.toString())}
+                        </SyntaxHighlighter>
+                      </div>
+                    )}
                   </div>
                   <br />
                 </div>
@@ -162,16 +174,16 @@ class WorkspaceScreen extends Component {
               <div className="WorkspaceButtons">
                 <button
                   className="btn btn-primary"
-                  onClick={this.handleAddDirectoryClick}
+                  onClick={this.handleAddProjectClick}
                 >
-                  ADD PROJECT
+                  ADD CORDAPP
                 </button>
                 <button
                   className="btn btn-primary"
-                  disabled={this.state.selectedIdx === null}
+                  disabled={this.state.selectedIdx === null || this.projectIsSaved(this.state.selectedIdx)}
                   onClick={this.handleRemoveProject}
                 >
-                  REMOVE PROJECT
+                  REMOVE CORDAPP
                 </button>
               </div>
             </div>

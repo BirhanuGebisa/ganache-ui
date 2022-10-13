@@ -47,19 +47,11 @@ module.exports = {
     const os = getOsInfo();
     const platform = os.platform;
     const arch = os.arch;
-    const required = {
-      cordaBoostrapper: new File(`corda-tools-network-bootstrapper-4.0.jar`),
-      braidServer: new File(`braid-server.jar`),
-      blobInspector: new File(`corda-tools-blob-inspector-4.4.jar`),
-      postgres: new File(`postgresql-9.6.15-2-${platform}-${arch}-binaries.zip`),
-      jre: new File(`OpenJDK8U-jre_${arch}_${platform}_hotspot_8u232b09.zip`),
-      cordaDrivers: new File("corda-drivers.zip")
-    };
     const extras = {
       downloader: downloader,
       corda: {
-        downloadRequired: async (force = false) => {
-          const keys = Object.values(required).map(file => file.url);
+        downloadAll: async (force = false) => {
+          const keys = Object.values(extras.corda.files).map(file => file.url);
           const pathPromises = downloader.downloadAll(keys, force);
           return pathPromises.then((paths) => {
             const result = {};
@@ -68,11 +60,11 @@ module.exports = {
           })
         },
         files: {
-          ...required,
-          corda4_0: new File(`corda-4.0.jar`),
-          corda4_1: new File(`corda-4.1.jar`),
-          corda4_3: new File(`corda-4.3.jar`),
-          corda4_4: new File(`corda-4.4.jar`),
+          cordaBoostrapper: new File(`corda-tools-network-bootstrapper-4.3.jar`),
+          braidServer: new File(`braid-server.jar`),
+          blobInspector: new File(`corda-tools-blob-inspector-4.3.jar`),
+          postgres: new File(`postgresql-9.6.15-2-${platform}-${arch}-binaries.zip`),
+          jre: new File(`OpenJDK8U-jre_${arch}_${platform}_hotspot_8u232b09.zip`)
         }
       }
     }
